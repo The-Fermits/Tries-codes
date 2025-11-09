@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TrieNode {
+    TrieNode* child[2];
+    int cnt; // numbers passing through this node
+    TrieNode() {
+        child[0] = child[1] = nullptr;
+        cnt = 0;
+    }
+};
+
+class BitwiseTrie {
+    TrieNode* root;
+    int sz; // total numbers inserted (considering removals)
+
+public:
+    BitwiseTrie() {
+        root = new TrieNode();
+        sz = 0;
+    }
+
+    // insert number x
+    void insert(int x) {
+        TrieNode* cur = root;
+        for (int i = 31; i >= 0; --i) {
+            int b = (x >> i) & 1;
+            if (!cur->child[b]) cur->child[b] = new TrieNode();
+            cur = cur->child[b];
+            cur->cnt++;
+        }
+        sz++;
+    }
+
+    // remove number x (decrease counts). If x not present, do nothing.
+    void remove(int x) {
+        TrieNode* cur = root;
+        // first check existence
+        for (int i = 31; i >= 0; --i) {
+            int b = (x >> i) & 1;
+            if (!cur->child[b] || cur->child[b]->cnt == 0) {
+                return; // x not present
+            }
+            cur = cur->child[b];
+        }
+        // x exists — now actually decrement counts along the path
+        cur = root;
+        for (int i = 31; i >= 0; --i) {
+            int b = (x >> i) & 1;
+            TrieNode* nxt = cur->child[b];
+            nxt->cnt--;
+            cur = nxt;
+        }
+        sz--;
+    }
+
+    // return maximum XOR value (y ^ x) achievable with any inserted x
+    // returns -1 if trie is empty
+    int maxXor(int y) {
+        if (sz == 0) return -1; // no numbers inserted
+
+        TrieNode* cur = root;
+        int ans = 0;
+        for (int i = 31; i >= 0; --i) {
+            int b = (y >> i) & 1;
+            int want = 1 - b; // to maximize XOR choose opposite if possible
+
+            if (cur->child[want] && cur->child[want]->cnt > 0) {
+                ans |= (1 << i);
+                cur = cur->child[want];
+            } else if (cur->child[b] && cur->child[b]->cnt > 0) {
+                cur = cur->child[b];
+            } else {
+                // shouldn't happen often if sz>0, but break safely
+                break;
+            }
+        }
+        return ans;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    BitwiseTrie trie;
+    int q;
+    if (!(cin >> q)) return 0;
+
+    while (q--) {
+        int type, x;
+        cin >> type >> x;
+        if (type == 1) {
+            trie.insert(x);
+        } else if (type == 2) {
+            trie.remove(x);
+        } else if (type == 3) {
+            int res = trie.maxXor(x);
+            if (res == -1)
+                cout << "Trie empty\n";
+            else
+                cout << res << '\n';
+        } else {
+            // invalid command, ignore
+        }
+    }
+    return 0;
+}
